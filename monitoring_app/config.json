@@ -1,0 +1,10 @@
+{
+    "PG_HOST_PROD": "production",
+    "PG_HOST_REPL": "read_replica",
+    "PG_PORT": "5432",
+    "PG_DB": "cdc_db",
+    "PG_USER": "admin",
+    "PG_PASS": "admin123",
+    "INTERVAL": 5,
+    "LOG_INTERVAL": 5
+}

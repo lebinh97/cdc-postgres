@@ -1,0 +1,75 @@
+services:
+  production:
+    image: postgres:16-alpine
+    container_name: production
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: cdc_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./data/pg5433:/var/lib/postgresql/data
+      - ./config/pg5433/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/pg5433/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+      - "-c"
+      - "hba_file=/etc/postgresql/pg_hba.conf"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d cdc_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  read_replica:
+    image: postgres:16-alpine
+    container_name: read_replica
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: cdc_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./init_replica.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./data/pg5434:/var/lib/postgresql/data
+      - ./config/pg5434/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/pg5434/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+      - "-c"
+      - "hba_file=/etc/postgresql/pg_hba.conf"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d cdc_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      production:
+        condition: service_healthy
+
+  producer:
+    build: ./producer_app
+    environment:
+      PG_HOST: production
+      PG_PORT: "5432"
+    depends_on:
+      production:  { condition: service_healthy }
+      read_replica: { condition: service_healthy }
+
+  monitor:
+    build: ./monitoring_app
+    volumes:
+      - ./monitoring_app/logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      production:  { condition: service_healthy }
+      read_replica: { condition: service_healthy }

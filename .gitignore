@@ -1,0 +1,5 @@
+# Ignore PostgreSQL data directories (they contain binary database files)
+data/
+
+# Ignore macOS junk
+.DS_Store
