@@ -1,0 +1,17 @@
+{
+    "name": "cdc-postgres-connector",
+    "config": {
+        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+        "plugin.name": "pgoutput",
+        "database.hostname": "production",
+        "database.port": "5432",
+        "database.user": "admin",
+        "database.password": "admin123",
+        "database.dbname": "cdc_db",
+        "database.server.name": "cdc_postgres",
+        "table.include.list": "public.user_log_mobile,public.user_log_desktop",
+        "topic.prefix": "cdc"
+    }
+}
+
+
