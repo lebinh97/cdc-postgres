@@ -1,0 +1,9 @@
+[2026-06-17 03:21:58,000] {monitor.py} INFO - CDC Monitor started | refresh=5s  log_rotate=5s
+[2026-06-17 03:21:58,000] {monitor.py} INFO - ────────────────────────────────────────────────────────────
+[2026-06-17 03:21:58,000] {monitor.py} INFO - Subscription | active=YES | last_msg=2026-06-17 03:21:58.333782+00:00 | lag=0s
+[2026-06-17 03:22:00,000] {monitor.py} INFO - user_log_desktop          prod=  13,466,624  repl=  13,471,616  last_prod=03:21:58  last_repl=03:21:59  lag=-1008ms
+[2026-06-17 03:22:03,000] {monitor.py} INFO - user_log_mobile           prod=  13,463,556  repl=  13,468,564  last_prod=03:22:00  last_repl=03:22:01  lag=-1504ms
+[2026-06-17 03:22:10,000] {monitor.py} INFO -   docker/production           CPU=1.5%  MEM=2176MB/27.8%  NET rx=0B/s tx=0B/s  (total rx=28.5MB tx=87.2MB)
+[2026-06-17 03:22:10,000] {monitor.py} INFO -   docker/read_replica         CPU=0.7%  MEM=2084MB/26.6%  NET rx=0B/s tx=0B/s  (total rx=74.5MB tx=6.4MB)
+[2026-06-17 03:22:10,000] {monitor.py} INFO -   docker/cdc-producer-1       CPU=1.5%  MEM=12MB/0.2%  NET rx=0B/s tx=0B/s  (total rx=36kB tx=6.1MB)
+[2026-06-17 03:22:10,000] {monitor.py} INFO - ────────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS user_log_mobile (
     device   TEXT        NOT NULL,
     screen   TEXT        NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_mobile_ts ON user_log_mobile (ts);
 
 CREATE TABLE IF NOT EXISTS user_log_desktop (
     id       BIGSERIAL PRIMARY KEY,
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS user_log_desktop (
     device   TEXT        NOT NULL,
     screen   TEXT        NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_desktop_ts ON user_log_desktop (ts);
 
 -- CDC: publish all tables listed in :tables variable
 CREATE PUBLICATION cdc_pub FOR TABLE :tables;

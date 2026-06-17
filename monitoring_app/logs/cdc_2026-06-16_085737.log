@@ -1,4 +1,0 @@
-[2026-06-16 08:57:42,000] {monitor.py} INFO - ────────────────────────────────────────────────────────────
-[2026-06-16 08:57:42,000] {monitor.py} INFO - Subscription | active=YES | last_msg=2026-06-16 08:57:41.692353+00:00
-[2026-06-16 08:57:42,000] {monitor.py} INFO - user_log_desktop          prod=  13,370,253  repl=  13,375,303  lag=-5,050  ins/s=  24,001
-[2026-06-16 08:57:42,000] {monitor.py} INFO - user_log_mobile           prod=  13,367,247  repl=  13,372,197  lag=-4,950  ins/s=  23,999

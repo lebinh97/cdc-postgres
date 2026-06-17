@@ -14,6 +14,8 @@ def _conn(host):
 
 SQL_TABLES = "SELECT relname, n_tup_ins FROM pg_stat_user_tables ORDER BY relname;"
 SQL_SUB    = "SELECT subname, received_lsn, last_msg_send_time FROM pg_stat_subscription;"
+SQL_LAG    = "SELECT COALESCE(EXTRACT(epoch FROM replay_lag)::int, 0) AS lag_sec FROM pg_stat_replication WHERE application_name = 'cdc_sub';"
+SQL_LAST   = "SELECT MAX(ts) FROM {};"
 
 def _airflow_ts():
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + ",000"
@@ -101,15 +103,32 @@ def main():
         sub_active = "YES" if subs and subs[0][1] else "NO"
         sub_last   = str(subs[0][2]) if subs else "-"
 
+        # Time-based replication lag (seconds behind)
+        pcur.execute(SQL_LAG)
+        lag_row = pcur.fetchone()
+        lag_sec = lag_row[0] if lag_row else 0
+
         _log("─" * 60, fh)
-        _log(f"Subscription | active={sub_active} | last_msg={sub_last}", fh)
+        _log(f"Subscription | active={sub_active} | last_msg={sub_last} | lag={lag_sec}s", fh)
         for tbl in sorted(set(p_data) | set(r_data)):
             p = p_data.get(tbl, 0)
             r = r_data.get(tbl, 0)
-            lag = p - r
             ins_s = (p - prev_p.get(tbl, p)) / CFG["INTERVAL"]
             prev_p[tbl] = p
-            _log(f"{tbl:<25} prod={p:>12,}  repl={r:>12,}  lag={lag:+,}  ins/s={ins_s:>8,.0f}", fh)
+
+            # Last update timestamps + delay in ms
+            pcur.execute(SQL_LAST.format(tbl))
+            last_prod = pcur.fetchone()[0]
+            rcur.execute(SQL_LAST.format(tbl))
+            last_repl = rcur.fetchone()[0]
+            lp = last_prod.strftime("%H:%M:%S") if last_prod else "-"
+            rp = last_repl.strftime("%H:%M:%S") if last_repl else "-"
+            lag_ms = ""
+            if last_prod and last_repl:
+                delta = int((last_prod - last_repl).total_seconds() * 1000)
+                lag_ms = f"lag={delta}ms"
+
+            _log(f"{tbl:<25} prod={p:>12,}  repl={r:>12,}  last_prod={lp}  last_repl={rp}  {lag_ms}", fh)
 
         # Docker container stats — show rate + cumulative
         d_stats = _docker_stats(dkr)

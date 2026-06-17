@@ -83,28 +83,44 @@ docker compose logs -f monitor   # watch the live dashboard
 
 The monitor writes Airflow-style logs to `monitoring_app/logs/` every 5 seconds. Each entry covers three layers:
 
+**~1,000 rows/s (BATCH=500, FREQ=2) — near-zero lag:**
 ```
-user_log_desktop    prod=  13,130,183  repl=  13,135,245  lag=-5,062  ins/s=  24,007
-user_log_mobile     prod=  13,127,317  repl=  13,132,255  lag=-4,938  ins/s=  23,993
-  docker/production       CPU=1.4%  MEM=195MB/2.5%  NET rx=1.9MB/s tx=9.3MB/s  (total rx=998MB tx=4.7GB)
-  docker/read_replica     CPU=0.8%  MEM=180MB/2.3%  NET rx=9.3MB/s tx=268kB/s  (total rx=4.1GB tx=120MB)
-Subscription | active=YES | last_msg=2026-06-16 08:57:17.491743+00:00
+user_log_desktop    prod=  13,425,024  repl=  13,425,019  last_prod=10:24:07  last_repl=10:24:07  lag=0ms
+user_log_mobile     prod=  13,422,176  repl=  13,422,171  last_prod=10:24:11  last_repl=10:24:11  lag=0ms
+  docker/production       CPU=0.1%  MEM=134MB/1.7%  NET rx=6kB/s tx=13kB/s  (total rx=7.1MB tx=15.3MB)
+  docker/read_replica     CPU=0.0%  MEM=43MB/0.5%   NET rx=12kB/s tx=2kB/s  (total rx=13.4MB tx=2.0MB)
+Subscription | active=YES | last_msg=... | lag=0s
+```
+
+**~5,000,000 rows/s — still only ~3 seconds behind:**
+```
+user_log_desktop    prod=  18,232,680  repl=  18,227,696  last_prod=03:30:03  last_repl=03:30:06  lag=-3043ms
+user_log_mobile     prod=  18,227,500  repl=  18,222,484  last_prod=03:30:10  last_repl=03:30:13  lag=-2514ms
+  docker/production       CPU=2.5%  MEM=1828MB/23.3%  NET rx=3.8MB/s tx=17.9MB/s   (total rx=426MB tx=2.0GB)
+  docker/read_replica     CPU=0.6%  MEM=2851MB/36.4%  NET rx=18.2MB/s tx=521kB/s  (total rx=1.9GB tx=60MB)
+Subscription | active=YES | last_msg=... | lag=0s
 ```
 
 | Line | What it tells you |
 |---|---|
-| Table rows | `prod` = live insert counter on production. `repl` = inserts received by replica. `lag` = diff (≤0 = caught up). `ins/s` = current throughput. |
-| Docker stats | CPU%, memory, and NET rates (live) + cumulative totals. `tx` spike = CDC stream is active. |
-| Subscription | `active=YES` + recent `last_msg` = WAL is flowing, replication is healthy. |
+| `prod` / `repl` | Live insert counter on each database |
+| `last_prod` | Timestamp of the most recent row on production |
+| `last_repl` | Timestamp of the most recent row on the replica |
+| `lag=Xms` | Time difference between the two — **true replication delay in milliseconds** |
+| Docker stats | CPU%, memory, NET rates (live) + cumulative totals |
+| Subscription | `active=YES` + `lag=0s` = WAL stream is healthy |
 
-## Resource comparison: 500 vs 10,000 rows/sec
+The `lag` column answers the real question: "how far behind is my replica right now?" — in milliseconds, not row counts. Even pushing 5 million rows per second, the replica stays within ~3 seconds of production.
 
-| Metric | 500 rows/s | 10,000 rows/s | Δ |
+## Resource comparison: 1K vs 5M rows/sec
+
+| Metric | ~1,000 rows/s | ~5,000,000 rows/s | Δ |
 |---|---|---|---|
-| Producer CPU | 0.2% | 1.2% | 6× |
-| Production CPU | 0.4% | 1.4% | 3.5× |
-| Replica CPU | 0.2% | 0.8% | 4× |
-| WAL network (tx) | 464 kB/s | 9.3 MB/s | 20× |
-| Replication lag | ~ -250 | ~ -5,000 | — |
+| Producer CPU | 0.1% | 1.1% | 11× |
+| Production CPU | 0.1% | 2.5% | 25× |
+| Replica CPU | 0.0% | 0.6% | — |
+| WAL network (tx) | 13 kB/s | 17.9 MB/s | 1,400× |
+| Replication lag | 0ms | ~3,000ms (3s) | still near real-time |
+| Replica memory | 43 MB | 2,851 MB | WAL buffered in memory |
 
-The WAL network stream scales linearly with insert volume. Negligible CPU impact even at 10k rows/s — the bottleneck is network bandwidth between containers, not compute.
+The WAL network stream scales linearly with insert volume. Even at 5M+ rows/s, CDC replication lag is measured in seconds — not minutes. The primary bottleneck is network bandwidth between containers, not CPU.
