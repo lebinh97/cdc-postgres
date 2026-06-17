@@ -1,0 +1,8 @@
+[2026-06-17 08:34:47,000] {monitor.py} INFO - ────────────────────────────────────────────────────────────
+[2026-06-17 08:34:47,000] {monitor.py} INFO - Subscription | active=YES | last_msg=2026-06-17 08:34:47.528340+00:00 | lag=0s
+[2026-06-17 08:34:47,000] {monitor.py} INFO - user_log_desktop          prod=   3,699,057  repl=   3,699,057  last_prod=08:34:47  last_repl=08:34:47  lag=0ms
+[2026-06-17 08:34:47,000] {monitor.py} INFO - user_log_mobile           prod=   3,695,943  repl=   3,695,943  last_prod=08:34:47  last_repl=08:34:47  lag=0ms
+[2026-06-17 08:34:58,000] {monitor.py} INFO -   docker/production           CPU=1.2%  MEM=180MB/2.3%  NET rx=1.3MB/s tx=6.2MB/s  (total rx=309.1MB tx=1.4GB)
+[2026-06-17 08:34:58,000] {monitor.py} INFO -   docker/read_replica         CPU=0.5%  MEM=343MB/4.4%  NET rx=6.2MB/s tx=179kB/s  (total rx=1.4GB tx=41.4MB)
+[2026-06-17 08:34:58,000] {monitor.py} INFO -   docker/cdc-producer-1       CPU=1.0%  MEM=11MB/0.1%  NET rx=8kB/s tx=1.1MB/s  (total rx=1.8MB tx=264.8MB)
+[2026-06-17 08:34:58,000] {monitor.py} INFO - ────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ services:
       - "5433:5432"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - ./data/pg5433:/var/lib/postgresql/data
+      - ./data-postgres/pg5433:/var/lib/postgresql/data
       - ./config/pg5433/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./config/pg5433/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     command:
@@ -38,7 +38,7 @@ services:
       - "5434:5432"
     volumes:
       - ./init_replica.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - ./data/pg5434:/var/lib/postgresql/data
+      - ./data-postgres/pg5434:/var/lib/postgresql/data
       - ./config/pg5434/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./config/pg5434/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     command:
@@ -74,65 +74,60 @@ services:
       production:  { condition: service_healthy }
       read_replica: { condition: service_healthy }
 
-  # ──────────────────────────────────────────────────────────────
-  # Kafka (KRaft — no Zookeeper) + Debezium → CDC → Kafka topics
-  # ──────────────────────────────────────────────────────────────
-
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.9.0
     container_name: kafka
     restart: unless-stopped
-    ports:
-      - "9092:9092"
     environment:
-      CLUSTER_ID: "cdc-cluster-001"
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
       KAFKA_LISTENERS: "PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093"
       KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_KRAFT_CLUSTER_ID: "cdc-cluster-001"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    ports:
+      - "9092:9092"
     volumes:
-      - ./kafka/data/kafka:/var/lib/kafka/data
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
+      - ./data-kafka/kafka:/var/lib/kafka/data
 
-  debezium-connect:
-    build: ./debezium
-    container_name: debezium-connect
+  debezium:
+    image: debezium/connect:3.0.0.Final
+    container_name: debezium
     restart: unless-stopped
     depends_on:
-      kafka:
-        condition: service_healthy
-      production:
-        condition: service_healthy
-    ports:
-      - "8083:8083"
+      - kafka
     environment:
       BOOTSTRAP_SERVERS: kafka:9092
       GROUP_ID: 1
-      CONFIG_STORAGE_TOPIC: debezium_connect_configs
-      OFFSET_STORAGE_TOPIC: debezium_connect_offsets
-      STATUS_STORAGE_TOPIC: debezium_connect_statuses
-      CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_statuses
       KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
-      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-    volumes:
-      - ./kafka/connect:/kafka/connect
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_REST_ADVERTISED_HOST_NAME: debezium
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:8083/connectors"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
+      test: ["CMD", "curl", "-sf", "http://localhost:8083/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "8083:8083"
+
+  debezium-init:
+    image: curlimages/curl:latest
+    depends_on:
+      debezium:
+        condition: service_healthy
+    volumes:
+      - ./debezium.json:/connector.json:ro
+    command: -s -X POST -H "Accept:application/json" -H "Content-Type:application/json" http://debezium:8083/connectors/ --data @/connector.json
+

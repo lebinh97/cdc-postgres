@@ -22,5 +22,9 @@ CREATE TABLE IF NOT EXISTS user_log_desktop (
 );
 CREATE INDEX IF NOT EXISTS idx_desktop_ts ON user_log_desktop (ts);
 
+-- CDC: required for Debezium to capture UPDATE/DELETE old values
+ALTER TABLE user_log_mobile   REPLICA IDENTITY FULL;
+ALTER TABLE user_log_desktop  REPLICA IDENTITY FULL;
+
 -- CDC: publish all tables listed in :tables variable
 CREATE PUBLICATION cdc_pub FOR TABLE :tables;

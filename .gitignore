@@ -1,5 +1,6 @@
 # Ignore PostgreSQL data directories (they contain binary database files)
-data/
+data-kafka/
+data-postgres/
 
 # Ignore macOS junk
 .DS_Store
