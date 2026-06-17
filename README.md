@@ -2,7 +2,7 @@
 
 A lightweight Change Data Capture (CDC) pipeline using **PostgreSQL native logical replication** — no Kafka, no Debezium, no extra tools. One producer pushes synthetic user activity logs into a **production** database, and a **read replica** receives every row in near real-time via the WAL stream.
 
-**Performance**: 2.5 ~ 3 second lags for 20k rows per sec, on 2 ~20million rows table. For specific number please scroll dơn to the monitoring section.
+**Performance**: 2.5 ~ 3 second lags for 20k rows per sec, on 2 ~20million rows table. For specific number please scroll down to the monitoring section.
 
 ## How it works
 
