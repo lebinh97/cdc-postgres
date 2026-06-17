@@ -114,9 +114,9 @@ Subscription | active=YES | last_msg=... | lag=0s
 
 The `lag` column answers the real question: "how far behind is my replica right now?" — in milliseconds, not row counts. Even pushing 5 million rows per second, the replica stays within ~3 seconds of production.
 
-## Resource comparison: 1K vs 5M rows/sec
+## Resource comparison: 1K vs 20k rows/sec
 
-| Metric | ~1,000 rows/s | ~5,000,000 rows/s | Δ |
+| Metric | ~1,000 rows/s | ~20k rows/s | Δ |
 |---|---|---|---|
 | Producer CPU | 0.1% | 1.1% | 11× |
 | Production CPU | 0.1% | 2.5% | 25× |
@@ -125,4 +125,4 @@ The `lag` column answers the real question: "how far behind is my replica right 
 | Replication lag | 0ms | ~3,000ms (3s) | still near real-time |
 | Replica memory | 43 MB | 2,851 MB | WAL buffered in memory |
 
-The WAL network stream scales linearly with insert volume. Even at 5M+ rows/s, CDC replication lag is measured in seconds — not minutes. The primary bottleneck is network bandwidth between containers, not CPU.
+The WAL network stream scales linearly with insert volume. Even at 20k+ rows/s, CDC replication lag is measured in seconds — not minutes. The primary bottleneck is network bandwidth between containers, not CPU.
